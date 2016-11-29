@@ -30,19 +30,6 @@ LilCanvas.Core.prototype.createBuffer = function(x, y, width, height)
     return buffer;
 };
 
-LilCanvas.Core.prototype.removeBuffer = function(buffId)
-{
-    this.buffers.splice(buffId, 1);
-};
-
-LilCanvas.Core.prototype.removeBuffers = function(buffIdArray)
-{
-    for (var i = 0; i < buffIdArray.length; i++)
-    {
-        this.removeBuffer(buffIdArray[i]);
-    }
-};
-
 LilCanvas.Core.prototype.startLoop = function(logicFn)
 {
     this.stopped = false;
@@ -74,20 +61,19 @@ LilCanvas.Core.prototype.loop = function(logicFn)
 
 LilCanvas.Core.prototype.refresh = function()
 {
-    var buffToRemove = [];
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-    for (var i = 0; i < this.buffers.length; i++)
+    var length = this.buffers.length - 1;
+    for (var i = length; i > -1; i--)
     {
         var buffer = this.buffers[i];
         if (buffer.toRemove)
         {
-            buffToRemove.push(i);
+            this.objects.splice(j, 1);
         }
         else
         {
             buffer.refresh(this.ctx);
         }
-        this.removeBuffers(buffToRemove);
     }
 };
 
@@ -129,28 +115,15 @@ LilCanvas.Buffer.prototype.addObjects = function(objArray)
     }
 };
 
-LilCanvas.Buffer.prototype.removeObject = function(objId)
-{
-    this.objects.splice(objId, 1);
-};
-
-LilCanvas.Buffer.prototype.removeObjects = function(objIdArray)
-{
-    for (var i = 0; i < objIdArray.length; i++)
-    {
-        this.removeObject(objIdArray[i]);
-    }
-};
-
 LilCanvas.Buffer.prototype.refresh = function(canvasCtx)
 {
-    var objToRemove = [];
     this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-    for (var j = 0; j < this.objects.length; j++)
+    var length = this.objects.length - 1;
+    for (var j = length; j > - 1; j--)
     {
         if (this.objects[j].toRemove)
         {
-            objToRemove.push(j);
+            this.objects.splice(j, 1);
         }
         else if (this.objects[j].isVisible)
         {
@@ -158,7 +131,6 @@ LilCanvas.Buffer.prototype.refresh = function(canvasCtx)
         }
     }
     canvasCtx.drawImage(this.element, this.x, this.y);
-    this.removeObjects(objToRemove);
 };
 
 LilCanvas.Point = function(x, y, alpha)
@@ -182,17 +154,18 @@ LilCanvas.Point.prototype.remove = function()
     this.toRemove = true;
 }
 
-LilCanvas.GeoObj = function(x, y, color, full, alpha)
+LilCanvas.GeoObj = function(x, y, color, full, stroke, alpha)
 {
     LilCanvas.Point.call(this, x, y, alpha);
     this.color = color;
     this.full = typeof full !== 'undefined' ? full : true;
+    this.stroke = typeof stroke !== 'undefined' ? stroke : null;
 };
 LilCanvas.GeoObj.prototype = new LilCanvas.Point();
 
-LilCanvas.Circle = function(x, y, radius, color, full, alpha)
+LilCanvas.Circle = function(x, y, radius, color, full, stroke, alpha)
 {
-    LilCanvas.GeoObj.call(this, x, y, color, full, alpha);
+    LilCanvas.GeoObj.call(this, x, y, color, full, stroke, alpha);
     this.radius = parseInt(radius);
 };
 LilCanvas.Circle.prototype = new LilCanvas.GeoObj();
@@ -208,18 +181,23 @@ LilCanvas.Circle.prototype.draw = function(ctx)
     }
     else
     {
+        ctx.lineWidth = this.stroke;
         ctx.strokeStyle = this.color;
         ctx.stroke();
     }
 };
 
-LilCanvas.Rectangle = function(x, y, width, height, color, full, alpha)
+LilCanvas.Rectangle = function(x, y, width, height, color, full, stroke, alpha)
 {
-    LilCanvas.GeoObj.call(this, x, y, color, full, alpha);
+    LilCanvas.GeoObj.call(this, x, y, color, full, stroke, alpha);
     this.width = parseInt(width);
     this.height = parseInt(height);
 };
 LilCanvas.Rectangle.prototype = new LilCanvas.GeoObj();
+LilCanvas.Rectangle.prototype.getCenter = function(ctx)
+{
+  return {x : this.x + this.width / 2 , y : this.y + this.height / 2 };
+};
 LilCanvas.Rectangle.prototype.draw = function(ctx)
 {
     ctx.globalAlpha = this.alpha;
@@ -232,6 +210,7 @@ LilCanvas.Rectangle.prototype.draw = function(ctx)
     }
     else
     {
+        ctx.lineWidth = this.stroke;
         ctx.strokeStyle = this.color;
         ctx.stroke();
     }
